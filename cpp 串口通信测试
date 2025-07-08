@@ -1,0 +1,113 @@
+下面是一个完整的 C++ 程序示例，演示如何向串口（如 /dev/ttyUSB0）进行读写测试。这个程序可以在 Linux 系统（比如 Ubuntu 或 WSL2）下运行，使用 termios 进行串口配置：
+
+⸻
+
+✅ 功能概述：
+	•	打开串口（默认 /dev/ttyUSB0）。
+	•	设置串口参数（如波特率为 9600）。
+	•	向串口写入测试数据 "Hello Serial"。
+	•	从串口读取并打印收到的数据。
+
+⸻
+
+📦 依赖项：
+	•	Linux 系统
+	•	C++ 编译器（如 g++）
+
+⸻
+
+🔧 示例代码：serial_test.cpp
+
+#include <iostream>
+#include <fcntl.h>      // 文件控制定义
+#include <termios.h>    // POSIX 终端控制定义
+#include <unistd.h>     // UNIX 标准函数定义
+#include <string.h>     // 字符串函数
+
+int main() {
+    const char* portname = "/dev/ttyUSB0";  // 串口设备路径，根据需要修改
+    int fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
+    
+    if (fd < 0) {
+        std::cerr << "Error opening " << portname << std::endl;
+        return 1;
+    }
+
+    // 设置串口参数
+    struct termios tty;
+    memset(&tty, 0, sizeof tty);
+    
+    if (tcgetattr(fd, &tty) != 0) {
+        std::cerr << "Error from tcgetattr" << std::endl;
+        return 1;
+    }
+
+    // 输入输出波特率
+    cfsetospeed(&tty, B9600);
+    cfsetispeed(&tty, B9600);
+
+    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8位字符
+    tty.c_iflag &= ~IGNBRK;                         // 忽略 BREAK 信号
+    tty.c_lflag = 0;                                // 非 canonical 模式
+    tty.c_oflag = 0;                                // 关闭输出处理
+
+    tty.c_cc[VMIN]  = 0;    // 最小字符数为0
+    tty.c_cc[VTIME] = 10;   // 读超时时间：1秒（单位100ms）
+
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY);         // 关闭软件流控
+    tty.c_cflag |= (CLOCAL | CREAD);                // 启用接收器
+    tty.c_cflag &= ~(PARENB | PARODD);              // 无校验
+    tty.c_cflag &= ~CSTOPB;                         // 1个停止位
+    tty.c_cflag &= ~CRTSCTS;                        // 无硬件流控
+
+    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+        std::cerr << "Error from tcsetattr" << std::endl;
+        return 1;
+    }
+
+    // 写入数据
+    const char* msg = "Hello Serial\n";
+    write(fd, msg, strlen(msg));
+    std::cout << "Sent: " << msg;
+
+    // 等待对方回应（例如通过回环或另一台设备）
+    char buf[100];
+    int n = read(fd, buf, sizeof(buf));
+    if (n > 0) {
+        std::cout << "Received: " << std::string(buf, n) << std::endl;
+    } else {
+        std::cout << "No data received." << std::endl;
+    }
+
+    close(fd);
+    return 0;
+}
+
+
+⸻
+
+🔨 编译方式：
+
+g++ serial_test.cpp -o serial_test
+
+
+⸻
+
+🚀 运行程序（需有权限）：
+
+sudo ./serial_test
+
+
+⸻
+
+🧪 测试建议：
+	1.	物理串口回环测试：用跳线将TX和RX短接；
+	2.	虚拟串口对：用 socat 创建虚拟串口对（如 /dev/pts/3 和 /dev/pts/4）：
+
+socat -d -d pty,raw,echo=0 pty,raw,echo=0
+
+
+
+⸻
+
+如果你是在 Windows 系统上运行，请告知，我可以给出基于 Windows API 或使用 Boost.Asio 的示例。需要我加入 Windows 支持吗？
