@@ -1,0 +1,82 @@
+Moxa 的串口设备（如 NPort 系列）支持 两种常见的工作模式：Real COM 模式 和 TCP 模式（也叫 Socket 模式）。它们的主要区别是你在程序里是以串口方式操作，还是以网络 TCP 方式操作设备。
+
+⸻
+
+🧩 一张对比图先看懂差异
+
+模式	Real COM 模式	TCP Server / TCP Client 模式
+原理	驱动映射设备为本地串口 /dev/ttyXXX	直接使用 TCP/IP socket 连接设备
+开发方式	使用串口代码（如 open("/dev/ttyM0")）	使用 TCP socket（如 connect(ip, port)）
+是否需要驱动	✅ 需要安装 Moxa 驱动	❌ 不需要驱动
+系统识别	识别为标准串口	识别为网络设备
+优点	程序无需修改；支持现有串口软件	灵活、跨平台，适合嵌入式系统
+缺点	驱动依赖、安装麻烦	程序需处理 TCP 协议、连接断开等细节
+场景	替代传统串口线；如串口打印机、工控设备	嵌入式系统、远程设备、无驱动系统
+
+
+⸻
+
+🔧 1. Real COM 模式（Moxa 官方推荐模式）
+
+✅ 原理
+
+Moxa 提供 Linux 驱动程序（或 Windows 驱动），将远程的串口设备 映射成本地虚拟串口设备。比如：
+
+/dev/ttyM0  ->  Moxa NPort IP:192.168.1.100, Port: 1
+
+这样你就可以像使用本地串口一样，用 open()、read()、write() 来访问 Moxa 设备，无需修改原有串口程序。
+
+🚀 使用方法
+	1.	安装 Moxa 官方驱动（Linux 下用 .tar.gz 包安装）。
+	2.	使用 mxadddev、mxloadsvr 或 setserial 设置虚拟串口。
+	3.	程序里就用 /dev/ttyM0 之类来访问。
+
+⸻
+
+🌐 2. TCP 模式（Socket 模式）
+
+✅ 原理
+
+设备作为 TCP Server（或 Client），程序通过标准 TCP socket 连接远程串口。比如：
+
+connect to 192.168.1.100:4001  // 通常 Port 4001 对应串口1
+
+只要设备支持 Socket 通信，就可以远程打开串口，发送或接收数据。
+
+常见子模式：
+
+子模式	描述
+TCP Server	Moxa 监听端口（默认4001），客户端连接后收发数据
+TCP Client	Moxa 主动连接目标主机（用于主动上传数据）
+UDP 模式	基于 UDP 的串口桥接（较少使用）
+
+🚀 使用方法
+
+不需要驱动，直接写 TCP 网络通信代码即可：
+
+int sock = socket(AF_INET, SOCK_STREAM, 0);
+connect(sock, ...);  // IP:192.168.1.100, port:4001
+send(sock, "Hello", 5, 0);
+
+
+⸻
+
+📌 总结建议
+
+你的需求	推荐模式	原因
+使用串口工具、老软件（如 minicom, modbus 工控程序）	✅ Real COM 模式	无需改程序
+自己写程序、想跨平台部署（Linux、嵌入式、Docker）	✅ TCP 模式	不依赖驱动，部署灵活
+
+
+⸻
+
+🛠️ 如何确认你当前模式？
+	1.	查看 /proc/moxainfo 是否存在 → 有则说明是 Real COM 模式。
+	2.	登录 NPort Web 管理界面（浏览器访问设备 IP），可以看到串口配置界面：
+	•	[✔] Real COM 模式 → 会显示 Port Mapping
+	•	[✔] TCP Server 模式 → 会显示 TCP Port（默认4001/4002…）
+	•	[✔] TCP Client → 会显示目标 IP 和端口
+
+⸻
+
+如果你告诉我你使用的 Moxa 设备型号（如 NPort 5110）以及你希望部署的系统（Ubuntu/Linux嵌入式/Docker等），我可以给你具体的安装指导或示例代码。是否方便提供？
