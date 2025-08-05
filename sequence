@@ -1,0 +1,15 @@
+User          Tool UI         MessageBuilder       RS485Comm           Sensor
+ |               |                  |                  |                  |
+ |-- Start Tool ------------------->|                  |                  |
+ |               |-- Prompt Inputs ------------------->|                  |
+ |               |<-- Input Confirmed ------------------|                  |
+ |               |                  |-- Build Msg ----->|                  |
+ |               |                  |<-- Msg Ready -----|                  |
+ |               |-- Set ttyR port -------------------->|                  |
+ |               |-- Send Message --------------------->|                  |
+ |               |                  |                  |-- Send Bytes --->|
+ |               |                  |                  |<-- Reply Bytes --|
+ |               |<-- Receive Data ---------------------|                  |
+ |               |-- Display Raw Response ------------->|                  |
+ |<-- Show Result --------------------------------------|                  |
+ |               |-- Prompt: Retry / Loop / Exit ------>|                  |
