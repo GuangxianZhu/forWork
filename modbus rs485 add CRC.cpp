@@ -112,3 +112,20 @@ int main() {
     close(fd);
     return 0;
 }
+
+
+// 构造帧 le100
+    std::vector<uint8_t> frame;
+
+    uint8_t eot = 0x04;
+    uint8_t enq = 0x05;
+    uint16_t addr = 0x0001;       // 地址高低位
+    char ident1 = 'S';
+    char ident2 = 'G';
+
+    frame.push_back(eot);
+    frame.push_back((addr >> 8) & 0xFF); // 高位
+    frame.push_back(addr & 0xFF);        // 低位
+    frame.push_back(ident1);             // 'S'
+    frame.push_back(ident2);             // 'G'
+    frame.push_back(enq)
