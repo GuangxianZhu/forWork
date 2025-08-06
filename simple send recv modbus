@@ -1,0 +1,93 @@
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+#include <fcntl.h>
+#include <unistd.h>
+#include <termios.h>
+#include <stdint.h>
+
+// 串口配置函数：9600 8N1，无流控，无校验
+int setup_serial(const char* port_name) {
+    int fd = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY);
+    if (fd < 0) {
+        perror("无法打开串口");
+        return -1;
+    }
+
+    struct termios options;
+    tcgetattr(fd, &options);
+    cfsetispeed(&options, B9600);
+    cfsetospeed(&options, B9600);
+
+    options.c_cflag &= ~PARENB; // 无校验
+    options.c_cflag &= ~CSTOPB; // 1 停止位
+    options.c_cflag &= ~CSIZE;
+    options.c_cflag |= CS8;     // 8 数据位
+    options.c_cflag |= (CLOCAL | CREAD); // 启用接收，本地模式
+
+    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // 原始输入
+    options.c_iflag &= ~(IXON | IXOFF | IXANY);         // 关闭软件流控
+    options.c_oflag &= ~OPOST;                          // 原始输出
+
+    tcsetattr(fd, TCSANOW, &options);
+    return fd;
+}
+
+// 用户输入 hex 字符串解析为字节数组
+std::vector<uint8_t> parse_hex_input(const std::string& input) {
+    std::vector<uint8_t> data;
+    std::stringstream ss(input);
+    unsigned int byte;
+    while (ss >> std::hex >> byte) {
+        data.push_back(static_cast<uint8_t>(byte));
+    }
+    return data;
+}
+
+// 打印为十六进制格式
+void print_hex(const uint8_t* data, int len) {
+    for (int i = 0; i < len; ++i) {
+        printf("%02X ", data[i]);
+    }
+    std::cout << std::endl;
+}
+
+// 主程序
+int main() {
+    const char* port = "/dev/ttyUSB0"; // 修改为你的串口名
+    int fd = setup_serial(port);
+    if (fd < 0) return 1;
+
+    std::string input;
+    std::cout << "请输入十六进制数据（空格分隔，如：01 03 00 00 00 01 84 0A）:" << std::endl;
+    std::getline(std::cin, input);
+
+    std::vector<uint8_t> tx_data = parse_hex_input(input);
+
+    if (tx_data.empty()) {
+        std::cerr << "输入为空或格式错误。" << std::endl;
+        close(fd);
+        return 1;
+    }
+
+    // 发送数据
+    write(fd, tx_data.data(), tx_data.size());
+    std::cout << "已发送：" << tx_data.size() << " 字节" << std::endl;
+
+    // 等待设备响应
+    usleep(100000); // 100ms
+
+    uint8_t rx[256];
+    int n = read(fd, rx, sizeof(rx));
+
+    if (n > 0) {
+        std::cout << "收到响应：" << n << " 字节：" << std::endl;
+        print_hex(rx, n);
+    } else {
+        std::cout << "未收到响应。" << std::endl;
+    }
+
+    close(fd);
+    return 0;
+}
