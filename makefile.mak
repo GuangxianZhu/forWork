@@ -1,136 +1,101 @@
-## 下面给你一个「较大」C++ 项目目录示例 + 一个在项目根目录写的通用 Makefile（推荐）。它会把 ./sub/UnitTest/zhutest/*.cpp 编译成一个可执行文件，并且自动把项目里各处的 include 目录加到 -I 里，兼容复杂头文件组织。
-your_project/
-├─ Makefile                 # 根 Makefile（下面给出）
-├─ include/                 # 公共头
-│   └─ yourproj/...
-├─ src/                     # 业务源码
-│   ├─ core/...
-│   └─ util/...
-├─ modules/
-│   ├─ net/
-│   │  ├─ include/...
-│   │  └─ src/...
-│   └─ storage/
-│      ├─ include/...
-│      └─ src/...
-├─ third_party/
-│   ├─ libA/include/...
-│   └─ libB/include/...
-└─ sub/
-   └─ UnitTest/
-      └─ zhutest/
-         └─ test_xxx.cpp   # 你要编译的单测源文件（也可以有多个 *.cpp）
+所有 .cpp（或 .c）里有实现的代码，如果它最终会被你的程序用到，都必须在编译时参与生成目标文件并参与链接。
+zhumain.cpp
+  |
+  --> 调用 RS485.cpp 里的函数
+         |
+         --> 调用 CRC.cpp 里的函数
+即使 zhumain.cpp 根本没 #include "CRC.hpp"，只要 RS485.cpp 调用了 CRC.cpp 里的实现，那么：
 
-根 Makefile（放在项目根目录）
-# ================= [Project config] =================
-PROJECT_NAME := zhutest
-CXX          := g++
-CXXSTD       := -std=c++17
-WARNINGS     := -Wall -Wextra -Wpedantic
-OPT          := -O2
-# 自动生成依赖：.d 文件，避免手工维护头文件依赖
-DEPFLAGS     := -MMD -MP
+CRC.cpp 必须加到 SRCS
 
-# 你可能需要的宏
-DEFINES      :=
+否则链接阶段就会报 undefined reference
 
-# —— 自动收集所有可能的 include 目录（递归找名为 include 的目录）——
-# 如果你的环境不喜欢 $(shell find ...)，也可手工列出。
-INCLUDE_DIRS := include \
-                $(shell find modules -type d -name include 2>/dev/null) \
-                $(shell find third_party -type d -name include 2>/dev/null)
-CPPFLAGS     := $(addprefix -I,$(INCLUDE_DIRS)) $(addprefix -D,$(DEFINES))
+Makefile 做法
+	在 SRCS 里包含：
+	当前测试用例的 .cpp
+	它直接 #include 的 .hpp 对应的 .cpp
+	这些 .cpp 再调用的别的 .hpp 对应的 .cpp
+	直到调用链结束
+	如果 .cpp 太多，可以用自动扫描的方法，把整个 src/、driver/ 下的 .cpp 都加进去，让链接器自己扔掉没用到的目标文件（静态库或可执行文件链接时会丢掉未引用的部分）。
 
-CXXFLAGS     := $(CXXSTD) $(WARNINGS) $(OPT) $(DEPFLAGS)
+在 sub/UnitTest/zhutest/ 下放一个 自动扫描版 Makefile
+# ===== 基本配置 =====
+CXX      := g++
+CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -MMD -MP
 
-# 库（如果需要）
-LDFLAGS      :=
-LDLIBS       :=
+# 项目根（从 zhutest 向上两级）
+ROOT := $(abspath ../..)
 
-# ================= [Sources / Outputs] =================
-# 只构建你的单测目录下的 cpp
-TEST_SRCS    := $(wildcard sub/UnitTest/zhutest/*.cpp)
+# 需要扫描源码/头文件的根
+CODE_ROOTS := $(ROOT)/src $(ROOT)/driver $(ROOT)/drivers
 
-# 目标可执行文件
-BIN_DIR      := bin
-TARGET       := $(BIN_DIR)/$(PROJECT_NAME)
+# 递归收集 include 目录（含根本身）
+INCLUDE_DIRS := $(CODE_ROOTS) $(shell find $(CODE_ROOTS) -type d 2>/dev/null)
+CPPFLAGS     := $(addprefix -I,$(INCLUDE_DIRS))
 
-# 对象文件与依赖文件放到 build/ 下，保持目录层级
-OBJ_DIR      := build
-OBJS         := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(TEST_SRCS))
-DEPS         := $(OBJS:.o=.d)
+# ===== 源文件收集 =====
+# 当前目录下的测试源码
+SRCS_LOCAL := $(wildcard *.cpp)
 
-# ================= [Rules] =================
-.PHONY: all run clean tidy includes
+# 上层各目录递归收集 .cpp（不存在时 find 会静默）
+SRCS_EXT := \
+  $(shell [ -d "$(ROOT)/src" ]     && find "$(ROOT)/src"     -type f -name '*.cpp' 2>/dev/null) \
+  $(shell [ -d "$(ROOT)/driver" ]  && find "$(ROOT)/driver"  -type f -name '*.cpp' 2>/dev/null) \
+  $(shell [ -d "$(ROOT)/drivers" ] && find "$(ROOT)/drivers" -type f -name '*.cpp' 2>/dev/null)
+
+# 合并所有源文件（带绝对/相对路径）
+SRCS_ALL := $(SRCS_LOCAL) $(SRCS_EXT)
+
+# 将“外部源文件”的前缀 $(ROOT)/ 去掉，做一个相对路径副本，用来映射到 build/ 目录
+REL_SRCS := $(filter-out $(ROOT)/%,$(SRCS_ALL)) \
+            $(patsubst $(ROOT)/%,%,$(filter $(ROOT)/%,$(SRCS_ALL)))
+
+# 目标、中间文件放这里（保持目录层级，避免同名冲突）
+BUILD  := build
+BIN    := bin
+TARGET := $(BIN)/zhutest
+OBJS   := $(patsubst %.cpp,$(BUILD)/%.o,$(REL_SRCS))
+DEPS   := $(OBJS:.o=.d)
+
+# 可选库
+LDFLAGS :=
+LDLIBS  :=
+
+# ===== 规则 =====
+.PHONY: all run clean includes
 
 all: $(TARGET)
 
 # 链接
-$(TARGET): $(OBJS) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+$(TARGET): $(OBJS) | $(BIN)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 	@echo ">>> built $@"
 
-# 编译：把 sub/UnitTest/zhutest/*.cpp 编到 build/sub/UnitTest/zhutest/*.o
-$(OBJ_DIR)/%.o: %.cpp | prep_dirs
+# --- 编译规则（两条）：兼容“外部源”(在 ROOT 下) 和 “本地源”(当前目录) ---
+
+# 外部源：build/xxx.o 由 $(ROOT)/xxx.cpp 生成
+$(BUILD)/%.o: $(ROOT)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
-# 目录预创建
-prep_dirs: | $(BIN_DIR) $(OBJ_DIR)
-$(BIN_DIR):
-	@mkdir -p $@
-$(OBJ_DIR):
+# 本地源：build/xxx.o 由 ./xxx.cpp 生成
+$(BUILD)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
+$(BIN):
 	@mkdir -p $@
 
-# 便捷：运行单测
+# 调试：打印所有 -I 路径和收集到的源
+includes:
+	@echo INCLUDES: $(CPPFLAGS)
+	@echo SRCS_ALL: $(SRCS_ALL)
+
 run: $(TARGET)
 	./$(TARGET)
 
-# 清理
 clean:
-	@rm -rf $(OBJ_DIR) $(BIN_DIR)
+	@rm -rf $(BUILD) $(BIN)
 
-# 显示最终 -I 列表（调试用）
-includes:
-	@echo $(CPPFLAGS)
-
-# 自动包含依赖文件
+# 头文件依赖
 -include $(DEPS)
-
-怎么用
-把上面的 Makefile 放在项目根目录。
-把你的测试源文件放在 sub/UnitTest/zhutest/ 下（可一个或多个 *.cpp）。
-在项目根执行：
-
-make            # 编译
-make run        # 运行 bin/zhutest
-make clean      # 清理
-
-如果你更想在 ./sub/UnitTest/zhutest 目录单独写一个小 Makefile
-这种方式通常需要从子目录向上添加包含路径。最简模板如下（放在 sub/UnitTest/zhutest/Makefile）：
-CXX := g++
-CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -MMD -MP
-
-# 项目根（相对当前目录）
-ROOT := $(abspath ../..)
-# 手工列出或用 find 自动找 include 目录
-INCLUDES := -I$(ROOT)/include \
-            $(shell cd $(ROOT) && find modules -type d -name include -printf "-I$(ROOT)/%p ")
-
-SRCS := $(wildcard *.cpp)
-OBJS := $(SRCS:.cpp=.o)
-DEPS := $(OBJS:.o=.d)
-TARGET := zhutest
-
-all: $(TARGET)
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET)
-
--include $(DEPS)
-
