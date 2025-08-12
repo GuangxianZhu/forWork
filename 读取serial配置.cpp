@@ -215,3 +215,9 @@ int main(int argc, char** argv) {
     close(fd);
     return 0;
 }
+
+编译与运行
+g++ -std=c++17 -O2 serial_from_csv.cpp -o serial_from_csv
+./serial_from_csv                 # 读取默认 ./serial_config.csv
+./serial_from_csv myconf.csv      # 指定其他配置文件
+
