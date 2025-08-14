@@ -1,0 +1,32 @@
+1. 确认MOXA端是否收到数据
+
+既然你没有终端设备，唯一能看到数据是否离开VM的方法就是：
+登录MOXA NPort的Web管理界面
+找到 Port Monitor / Status（每个串口都有一个统计页面）
+在Linux里用echo -ne或者你的C++程序不断发数据：
+while true; do echo -ne '\x55\xAA' > /dev/ttyS1; sleep 1; done
+
+刷新状态页，观察 Tx Bytes 计数是否增加
+如果Tx Bytes会增加，说明数据确实到达MOXA的串口层；如果不增加，就要回到流控和线控配置检查。
+
+2. 检查Windows端串口配置（RealCOM）
+在Windows PowerShell里查看并设置：
+mode com2
+mode com2: baud=9600 parity=n data=8 stop=1 xon=off odsr=off octs=off rts=on dtr=on
+要点：
+octs=off / odsr=off 关硬件流控
+rts=on / dtr=on 拉高DTR/RTS（RealCOM默认可能不拉高）
+这样Linux write的数据不会因为CTS/DSR没高而被卡死。
+
+3. Linux端串口设置确保无流控
+sudo stty -F /dev/ttyS1 9600 cs8 -cstopb -parenb -ixon -ixoff -crtscts -echo
+关闭crtscts避免硬件流控
+同时在代码里用ioctl把DTR/RTS置高（参考我前面给的C++示例）
+
+4. 判断数据是不是卡在Linux缓冲区
+即使你write()成功，也可能数据还在缓冲里没真正发到COM2。
+write(fd, buf, len);
+tcdrain(fd); // 等待内核缓冲发完
+发完再去MOXA状态页看Tx计数。
+如果tcdrain()不返回，说明可能是CTS/DSR没拉高，驱动等不来发送许可。
+
