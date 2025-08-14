@@ -1,0 +1,90 @@
+另一种方法，我如果在virtualbox安装moxa驱动？
+
+直接在 VirtualBox 来宾机（Linux）里安装 MOXA NPort 的 RealCOM 驱动，
+让 Linux 直接通过 TCP 访问 MOXA，这样完全绕过 Windows 的 COM2 → VirtualBox 串口直通？
+这是可行的，而且在你现在的条件下反而更简单可靠，原因有：
+
+现在的链路是：
+Linux VM → /dev/ttyS1 → VirtualBox 串口直通 → Windows COM2 → Windows RealCOM 驱动 → MOXA
+这中间有四层，任一层的流控/线控问题都会阻塞。
+如果在 Linux 直接装 MOXA NPort Linux RealCOM 驱动：
+Linux VM → /dev/ttyr00 (MOXA驱动生成的虚拟串口) → TCP → MOXA
+只剩两层，没了 Windows COM2/VirtualBox 串口直通的坑。
+
+要确认 VirtualBox 网络模式让 VM 能直接访问 MOXA IP（桥接模式最方便）。
+RealCOM 模式下，NPort 的串口就不能同时被 Windows 占用。
+
+改成 桥接网络：
+
+关掉 VM（一定要关机）
+VirtualBox → 选中你的 VM → “设置” → “网络”
+适配器 1：
+    勾选 “启用网络适配器”
+    “连接到” 选 桥接网卡
+    “名称” 选你的主板有线网卡（就是连接到 MOXA 的那个物理网口）
+    高级里“混杂模式”改为 允许所有
+
+启动 VM
+在 Linux 里 ip a 看看分配的 IP
+它应该跟 Windows 主机和 MOXA 在同一网段，例如：
+    Windows：192.168.0.10
+    Linux VM：192.168.0.20
+    MOXA：192.168.0.100
+在 VM 里 ping <MOXA-IP>，通就成功了
+
+一旦 VM 能 ping 通 MOXA，就可以直接安装 MOXA 的 Real TTY 驱动了，
+---------------驱动安装----------------
+https://github.com/ZSYMAX/Moxa-RealTTY-Linux-Driver/tree/master
+
+1. 准备工作
+
+重置 NPort
+按住复位键 10 秒恢复出厂设置（可选，但推荐这样确保配置干净）。
+确保网络连通
+NPort 和 Linux 主机在同一网段（IP 必须在同一个子网）。
+可以从 Linux ping <NPort-IP> 通。
+配置 NPort 工作模式
+在 NPort Web 配置里将端口设置为 Real COM mode（对应 Linux 的 Real TTY）
+
+安装 Real TTY 驱动
+假设你的驱动压缩包叫 npreal2xx.tgz，官方会针对不同内核版本提供。
+# 1) 进入 /tmp
+cd /tmp
+
+# 2) 把驱动包复制到 /tmp
+# 例如 scp 或 VirtualBox 共享目录拷贝进来
+
+# 3) 解压
+tar xvfz npreal2xx.tgz
+
+# 4) 执行安装脚本
+cd /tmp/moxa
+sudo ./mxinst
+# 如果是 Red Hat AS/ES/WS 或 Fedora Core1，要加 SP1 参数：
+# sudo ./mxinst SP1
+
+
+配置虚拟串口映射
+
+驱动安装完成后会在 /usr/lib/npreal2/driver 目录下提供 mxaddsvr 工具，用来把 NPort 的物理串口映射到 Linux 的 /dev/ttyrXX。
+cd /usr/lib/npreal2/driver
+
+# 语法：
+# ./mxaddsvr [NPort-IP] [总端口数] ([数据端口] [命令端口])
+
+# 例子：NPort 有 16 个串口，IP 是 192.168.127.254
+sudo ./mxaddsvr 192.168.127.254 16
+
+执行后会创建：
+/dev/ttyr00 ~ /dev/ttyr15
+
+这些就是 Linux 可直接 open/read/write 的虚拟串口设备。
+数据端口默认从 TCP 950 开始，命令端口从 966 开始。
+
+测试虚拟串口
+# 查看串口参数
+stty -a < /dev/ttyr00
+# 如果能返回波特率等参数，说明可用
+
+之后就可以用你的 C++ 程序直接打开 /dev/ttyr00 发送/接收数据了。
+
