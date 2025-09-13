@@ -64,3 +64,36 @@ if (n == -1) {
 如果 write() 返回 -1 → 看 errno（同上表）。
 
 如果返回值 < 期望长度 → 说明没全发完。
+
+
+////////////////////////////////
+class CMOXACommHandler
+public
+    ...
+CMOXACommHandler::commHandler(int ttyr, char* sendBuf, char* recvBuf){
+    scc2698Init(ttyr);
+    scc2698write(sendBuf, sizeof(sendBuf));
+    scc2698read(recvBuf, sizeof(recvBuf));
+}
+
+// 调用处
+CMOXACommHandler moxa;
+char sendBuf[256] = {0};
+char recvBuf[256] = {0};
+moxa.commHandler(8, sendBuf, recvBuf);
+////////////////////////////////
+////////////////////////////////
+update:
+int commHandler(int ttyr, 
+                const char* sendBuf, size_t sendLen,
+                char* recvBuf, size_t recvCap) {
+    scc2698Init(ttyr);
+    scc2698write(sendBuf, sendLen);
+    scc2698read(recvBuf, recvCap);
+}
+// 调用处
+CMOXACommHandler moxa;
+char sendBuf[256] = {0};
+char recvBuf[256] = {0};
+int rn = moxa.commHandler(8, sendBuf, sizeof(sendBuf), recvBuf, sizeof(recvBuf));
+////////////////////////////////
