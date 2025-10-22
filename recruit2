@@ -1,0 +1,63 @@
+当然可以。以下是将你前面所有部分整合成的一份完整的英文介绍稿（适合你在 NAIST 招聘会公司介绍 Q&A 环节使用）。
+内容结构清晰、自然口语化，约 3 分钟，可灵活删减。
+
+⸻
+
+🎤 SCREEN Company Introduction + Your Role + Wafer Cleaning Overview
+
+(For NAIST Career Fair – Q&A Session)
+
+⸻
+
+1️⃣ About SCREEN and Our Business
+
+“SCREEN Semiconductor Solutions is one of the global leaders in semiconductor manufacturing equipment.
+We are especially known for our wafer cleaning systems — and in fact, we have the top global market share in batch-type wet cleaning equipment.
+
+Our tools are used by many world-class fabs, including TSMC, Intel, Micron, and others.
+Because of that, we work on a variety of international projects, customizing our systems for each customer’s specific process flow and requirements.”
+
+⸻
+
+2️⃣ Importance of Cleaning in Semiconductor Manufacturing
+
+“Cleaning is one of the most important steps in semiconductor fabrication.
+
+During the process — deposition, photolithography, etching, and CMP — tiny particles or chemical residues remain on the wafer surface.
+If we don’t remove them completely, they can cause defects in the next step and reduce yield.
+
+That’s why wet cleaning is repeated many times throughout the entire process. For example:
+• After deposition, we remove film debris and chemical residues.
+• After photolithography, we remove photoresist and organic residues.
+• After etching, we remove metal ions and etch by-products.
+• After CMP, we remove slurry particles and metallic contamination.
+
+So cleaning is not just one step — it is repeated many times to keep the wafer surface perfectly clean.”
+
+⸻
+
+3️⃣ Your Role in Control System Development
+
+“I work as a control system engineer for the FC3000 batch-type cleaning equipment.
+
+The control software consists of four main parts — GUI, scheduler, transfer, and tank control.
+I’m in charge of the chemical treatment tank software.
+
+Each system is customized for every customer. For example, some fabs require additional functions like a side spray system in the tank.
+The customer interface team proposes the idea, and we discuss with them about software feasibility and implementation.
+
+Since I’m still a new engineer, I mainly focus on learning — attending design meetings, running simulations to study machine operation, and analyzing error logs to understand the system behavior.
+I look at the related code, design documents, and machine data to find the root cause of issues.
+It’s challenging but very interesting to see how hardware and software work together in a real machine.”
+
+⸻
+
+4️⃣ Closing Message for Students
+
+“Working at SCREEN gives us the opportunity to be part of world-class semiconductor projects and to see our software actually control real equipment used in fabs around the world.
+
+If you are interested in both programming and hardware, this kind of work can be very rewarding.”
+
+⸻
+
+Would you like me to produce a short slide-friendly version next (每一部分 1 ~ 2 行 + 可放图片建议，用于 PPT 口头介绍)?
