@@ -1,0 +1,36 @@
+The control software has several main parts — GUI, scheduler, transfer, and tank control. I’m in charge of the chemical treatment tank software.
+
+Each system is customized for every customer. When a new order comes, our customer interface team proposes the process flow, and we discuss with them whether it’s feasible from the software side — for example, adding a new side-spray function in the tank.
+
+Since I’m still a new engineer, most of my work now is learning — attending design meetings, running simulations to understand how the machine operates, and analyzing error logs when a problem happens.
+
+I check related data such as the software code, design documents, and machine status to find the cause. It’s quite challenging but very interesting to see how both hardware and software work together.
+
+It’s a large and complex system, so collaboration between software, electrical, and mechanical engineers is essential.”
+	•	“Even small changes, like adding one spray nozzle, can require big software modifications.”
+	•	“At this stage, I focus on understanding the system deeply before writing or changing code.”
+
+What programming languages do you use?
+“Mainly C and C++. For GUI parts, sometimes C# or Python tools are used.”
+What is the most difficult part of your job?
+“Understanding the whole system — because software and hardware are strongly connected.”
+How do you test or simulate the system?
+“We use a simulator to check software logic before running on the real machine.”
+Do you use English in your work?
+“Yes, sometimes for manuals, documents, or communication with overseas customers.”
+What kind of background is useful for this job?
+“Embedded programming, control theory, and communication skills for teamwork.”
+
+In semiconductor manufacturing, cleaning is one of the most important steps.
+
+During wafer fabrication, we repeat many processes such as film deposition, photolithography, and etching. After each of these steps, tiny particles, chemical residues, or metal ions can remain on the wafer surface.
+
+If we don’t remove them completely, they can cause defects in the next process and seriously reduce yield.
+
+Wet cleaning, especially chemical cleaning and wet etching, is used to remove those contaminants. For example, after photolithography, we clean to remove resist residues; after etching or chemical mechanical polishing (CMP), we clean again to remove particles and slurry.
+
+So, wafer cleaning is not just one step — it’s repeated many times throughout the entire semiconductor process. That’s why cleaning equipment like SCREEN’s batch-type system plays a key role in keeping wafer surfaces perfectly clean.
+
+Since SCREEN has the top market share in cleaning equipment, we receive many projects from world-class fabs such as TSMC, Intel, and Micron.
+Each system is custom-designed, so even small requests — like adding a new chemical spray or changing the tank structure — can require careful discussion between our customer team and software engineers.
+That’s the kind of work our control system team is involved in.
