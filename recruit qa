@@ -1,0 +1,80 @@
+非常好 👍
+你提前准备这个非常关键。NAIST 的学生（尤其是信息科学/材料/电子系）通常会在 Q&A 环节问一些带技术含义、但也想了解公司文化和职业发展的混合性问题。
+
+下面是我帮你整理的
+
+🎯 「NAIST 学生可能会问的问题 + 你可以准备的英文回答思路」
+分为 5 大类：技术类、工作内容类、职业发展类、文化与语言类、实习/求职类。
+
+⸻
+
+💻 1️⃣ 技术类（Technical Questions）
+
+学生可能问	回答要点关键词
+What kind of programming languages or technologies do you use?	“Mainly C and C++ for control logic. Sometimes C# or Python for GUI or testing tools.”
+What type of control system or architecture do you use?	“It’s an embedded control system managing sensors, valves, motors through RS-485 and PLC interfaces.”
+How do you test or debug the system?	“We use both simulators and real equipment for verification. The simulator helps us test logic safely before running the machine.”
+How do you ensure reliability and safety in such complex machines?	“We have interlock and error handling functions to prevent unsafe operations.”
+Do you use any AI or data analysis in cleaning systems?	“Not directly in control software, but data analysis and optimization are becoming more important for predictive maintenance.”
+What’s the difference between batch-type and single-wafer cleaning?	“Batch type cleans many wafers at once — higher throughput and efficiency. Single-wafer focuses on process precision.”
+
+
+⸻
+
+🧑‍💼 2️⃣ 工作内容类（Your Role & Daily Work）
+
+学生可能问	回答思路
+What exactly do you do in your daily work?	“Mainly design discussions, running simulations, studying system behavior, and analyzing errors.”
+What’s the most difficult part of your job?	“Understanding the whole system — both software and mechanical aspects — because everything is connected.”
+What’s the most interesting part?	“Seeing how my software actually controls real chemical systems in production equipment.”
+How big is your team?	“In our control software section, each group focuses on one function such as GUI or tank. We collaborate closely.”
+Do you write the code yourself?	“Not yet for big features — I’m still learning, but I’m reading and debugging real production code.”
+
+
+⸻
+
+📈 3️⃣ 职业发展类（Career & Learning）
+
+学生可能问	回答要点关键词
+How can students prepare for this type of job?	“Study C/C++, control theory, and communication protocols. Understanding hardware helps a lot.”
+Are there training programs for new engineers?	“Yes, we have several months of technical and on-site training, plus mentor support.”
+Is there a chance to move between divisions, like process or design?	“Yes, depending on your interest and skills — SCREEN has many development groups.”
+How do you feel working in a big company like SCREEN?	“There’s a lot to learn, and many experienced engineers to guide you.”
+What do you want to achieve in the future?	“To design reliable control functions that can be used by customers worldwide.”
+
+
+⸻
+
+🌏 4️⃣ 公司文化与语言类（Work Environment / Language）
+
+学生可能问	回答思路
+Do you use English in your work?	“Yes, for manuals, design documents, and sometimes for overseas customers.”
+How is teamwork at SCREEN?	“We often work in cross-functional teams — software, electrical, and process engineers together.”
+How is the working environment for non-Japanese employees?	“Quite supportive — communication is mostly in Japanese, but many people are patient and helpful.”
+Is overtime common?	“It depends on the project phase, but generally it’s well managed.”
+Do you work remotely?	“Sometimes possible, but for debugging we need to be at the site or lab.”
+
+
+⸻
+
+🎓 5️⃣ 实习 / 求职类（Recruitment / Internship）
+
+学生可能问	回答思路
+What kind of students are you looking for?	“Those who are curious, like solving problems, and can think logically.”
+Is internship available for international students?	“Yes, sometimes — it depends on the year and project.”
+Do I need to know Japanese to work at SCREEN?	“Japanese helps a lot for communication, but technical skills and motivation are more important.”
+How is the interview process?	“Usually document screening, technical interview, and communication check.”
+
+
+⸻
+
+💬 一些通用回答开头（让语气自然）
+	•	“That’s a very good question.”
+	•	“In my experience…”
+	•	“It depends on the project, but generally…”
+	•	“I’m still learning, but from what I’ve seen…”
+	•	“Our senior engineers usually explain that…”
+
+⸻
+
+是否希望我帮你把这些问答挑选出 最可能出现的10个问题 + 建议回答范例（完整英文句式），适合你打印或练习用？
