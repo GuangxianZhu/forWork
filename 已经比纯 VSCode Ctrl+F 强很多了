@@ -1,0 +1,284 @@
+Python 实现：给每一行补 UNIX 秒时间
+import re
+from pathlib import Path
+from datetime import datetime
+
+
+INPUT_FILE = Path("log.txt")
+OUTPUT_FILE = Path("normalized_log.tsv")
+
+# 识别 10 位 UNIX 秒，17 开头
+# 例如：1716600001, 1741234567
+UNIX_TS_PATTERN = re.compile(r"\b(17\d{8})\b")
+
+# 识别 tag，例如 (ONB2), (RS485DEVS4), (MachineAlarm)
+TAG_PATTERN = re.compile(r"\(([^)]+)\)")
+
+
+def find_unix_time(line: str):
+    """
+    从一行里找 UNIX 秒。
+    找不到返回 None。
+    """
+    m = UNIX_TS_PATTERN.search(line)
+    if not m:
+        return None
+    return int(m.group(1))
+
+
+def find_tag(line: str):
+    """
+    从一行里找第一个 tag。
+    例如 (ONB2) -> ONB2
+    """
+    m = TAG_PATTERN.search(line)
+    if not m:
+        return ""
+    return m.group(1)
+
+
+def format_time(ts):
+    """
+    UNIX 秒转成人类可读时间。
+    """
+    if ts is None:
+        return ""
+    return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def main():
+    lines = INPUT_FILE.read_text(encoding="utf-8", errors="ignore").splitlines()
+
+    records = []
+
+    # 第一次扫描：找每一行自己的 exact timestamp
+    for index, line in enumerate(lines, start=1):
+        ts = find_unix_time(line)
+        tag = find_tag(line)
+
+        records.append({
+            "line_no": index,
+            "raw": line,
+            "tag": tag,
+            "exact_ts": ts,
+            "norm_ts": ts,
+            "time_type": "exact" if ts is not None else "unknown",
+            "distance": 0 if ts is not None else None,
+        })
+
+    # 第二次扫描：从上往下，记录前面最近的 timestamp
+    forward_info = []
+    last_ts = None
+    last_line_no = None
+
+    for r in records:
+        if r["exact_ts"] is not None:
+            last_ts = r["exact_ts"]
+            last_line_no = r["line_no"]
+
+        forward_info.append({
+            "ts": last_ts,
+            "line_no": last_line_no,
+        })
+
+    # 第三次扫描：从下往上，记录后面最近的 timestamp
+    backward_info = [None] * len(records)
+    next_ts = None
+    next_line_no = None
+
+    for i in range(len(records) - 1, -1, -1):
+        r = records[i]
+
+        if r["exact_ts"] is not None:
+            next_ts = r["exact_ts"]
+            next_line_no = r["line_no"]
+
+        backward_info[i] = {
+            "ts": next_ts,
+            "line_no": next_line_no,
+        }
+
+    # 第四步：给没有 timestamp 的行补时间
+    for i, r in enumerate(records):
+        if r["exact_ts"] is not None:
+            continue
+
+        f = forward_info[i]
+        b = backward_info[i]
+
+        f_ts = f["ts"]
+        b_ts = b["ts"]
+        f_line = f["line_no"]
+        b_line = b["line_no"]
+
+        # 前后都没有时间
+        if f_ts is None and b_ts is None:
+            continue
+
+        # 只有前面有时间
+        if f_ts is not None and b_ts is None:
+            r["norm_ts"] = f_ts
+            r["time_type"] = "forward"
+            r["distance"] = abs(r["line_no"] - f_line)
+            continue
+
+        # 只有后面有时间
+        if f_ts is None and b_ts is not None:
+            r["norm_ts"] = b_ts
+            r["time_type"] = "backward"
+            r["distance"] = abs(r["line_no"] - b_line)
+            continue
+
+        # 前后都有时间，选行距离更近的
+        dist_f = abs(r["line_no"] - f_line)
+        dist_b = abs(r["line_no"] - b_line)
+
+        if dist_f <= dist_b:
+            r["norm_ts"] = f_ts
+            r["time_type"] = "nearby_forward"
+            r["distance"] = dist_f
+        else:
+            r["norm_ts"] = b_ts
+            r["time_type"] = "nearby_backward"
+            r["distance"] = dist_b
+
+    # 输出 TSV，Excel / VSCode / Python 都方便看
+    with OUTPUT_FILE.open("w", encoding="utf-8") as f:
+        f.write("line_no\tunix_time\tlocal_time\ttime_type\tdistance\ttag\traw\n")
+
+        for r in records:
+            ts = r["norm_ts"]
+            distance = "" if r["distance"] is None else r["distance"]
+
+            f.write(
+                f"{r['line_no']}\t"
+                f"{ts if ts is not None else ''}\t"
+                f"{format_time(ts)}\t"
+                f"{r['time_type']}\t"
+                f"{distance}\t"
+                f"{r['tag']}\t"
+                f"{r['raw']}\n"
+            )
+
+    print(f"Done: {OUTPUT_FILE}")
+    print(f"Total lines: {len(records)}")
+
+
+
+然后再抽 ONB2 + RS485DEVS4
+
+有了 normalized_log.tsv 之后，可以再写一个小脚本过滤 tag。
+from pathlib import Path
+import csv
+
+
+INPUT_FILE = Path("normalized_log.tsv")
+OUTPUT_FILE = Path("onb2_rs485_timeline.tsv")
+
+TARGET_TAGS = {
+    "ONB2",
+    "RS485DEVS4",
+    "MachineAlarm",
+}
+
+
+def main():
+    with INPUT_FILE.open("r", encoding="utf-8", errors="ignore") as fin, \
+         OUTPUT_FILE.open("w", encoding="utf-8") as fout:
+
+        reader = csv.DictReader(fin, delimiter="\t")
+        writer = csv.DictWriter(
+            fout,
+            fieldnames=reader.fieldnames,
+            delimiter="\t",
+            lineterminator="\n",
+        )
+
+        writer.writeheader()
+
+        count = 0
+
+        for row in reader:
+            if row["tag"] in TARGET_TAGS:
+                writer.writerow(row)
+                count += 1
+
+    print(f"Done: {OUTPUT_FILE}")
+    print(f"Filtered lines: {count}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+如果 ONB2 还是太多，再加关键词过滤
+
+比如只保留 ONB2 的关键动作：
+KEYWORDS_BY_TAG = {
+    "ONB2": [
+        "step",
+        "state",
+        "start",
+        "end",
+        "send",
+        "recv",
+        "request",
+        "wait",
+        "timeout",
+        "error",
+        "alarm",
+        "on",
+        "off",
+        "open",
+        "close",
+        "flow",
+        "level",
+        "sensor",
+    ],
+    "RS485DEVS4": [
+        "send",
+        "recv",
+        "tx",
+        "rx",
+        "timeout",
+        "retry",
+        "error",
+        "crc",
+        "address",
+        "response",
+    ],
+    "MachineAlarm": [
+        "",   # 全部保留
+    ],
+}
+def should_keep(tag, raw):
+    keywords = KEYWORDS_BY_TAG.get(tag)
+    if keywords is None:
+        return False
+
+    if "" in keywords:
+        return True
+
+    lower = raw.lower()
+    return any(k in lower for k in keywords)
+
+实际使用流程
+python normalize_log_time.py
+python filter_tags.py
+
+得到：
+
+normalized_log.tsv
+onb2_rs485_timeline.tsv
+
+然后你先看 onb2_rs485_timeline.tsv。
+
+如果还是太多，再做关键词压缩版：
+
+onb2_rs485_key_events.tsv
+
+我建议你第一版就做到这里，已经比纯 VSCode Ctrl+F 强很多了。
+
+
+if __name__ == "__main__":
+    main()
